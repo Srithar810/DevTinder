@@ -2,13 +2,12 @@ const express = require("express");
 const app = express();
 
 
-app.use("/hello", (req,res)=>{
-    res.send("Hello Srithar...!");
-})  
+app.get("/test",(req,res)=>{
+    res.send("get method sending sucessfully")
+})
 
-
-app.use("/", (req,res)=>{
-    res.send("Srithar..!");
+app.post("/test",(req,res)=>{
+    res.send("post method sending sucessfully")
 })
 
 
