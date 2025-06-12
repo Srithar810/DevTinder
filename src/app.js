@@ -1,30 +1,31 @@
 const express = require("express");
+const connectDB = require("./config/database");
 const app = express();
+const User = require("./models/user");
 
-app.get("/test", (req, res) => {
-  res.send("get method sending sucessfully");
-});
+app.post("/signup", async (req, res) => {
+  const user = new User({
+    firstName: "anand",
+    lastName: "s",
+    emaiId: "ani@gmail.com",
+    password: "12345",
+  });
 
-app.post("/test", (req, res) => {
-  res.send("post method sending sucessfully");
-});
-
-
-//------next() useage in route
-app.use(
-  "/us*er",
-  (req, res,next) => {
-    console.log("Handling the route user! ");
-    next();
-    res.send("Response1....!!!!");
-    
-  },
-  (req, res) => {
-    console.log("Handling the route user1....! ");
-    res.send("Response2....!!!!");
+  try {
+    await user.save();
+    res.send("User Added Sucessfully....!");
+  } catch (err) {
+    res.status(400).send("Error saving the user: " + err.message);
   }
-);
-
-app.listen(3000, () => {
-  console.log("Server is running on 3000 port...");
 });
+
+connectDB()
+  .then(() => {
+    console.log("database connection established....");
+    app.listen(5000, () => {
+      console.log("server is  sucessfully lisenting on  port 5000.... ");
+    });
+  })
+  .catch((err) => {
+    console.error("Database cannot be connected!....");
+  });
