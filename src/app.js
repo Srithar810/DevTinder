@@ -23,39 +23,67 @@ app.get("/user", async (req, res) => {
 
   try {
     const users = await User.findOne({ emailId: userEmail });
-    if(users.length === 0){
-        res.status(404).send("User not found")
-    }else{
-        res.send(users);
+    if (users.length === 0) {
+      res.status(404).send("User not found");
+    } else {
+      res.send(users);
     }
   } catch (err) {
     res.status(500).send("Something Went wrong");
   }
 });
 
-
 //feed all data from DB
-app.get("/feed", async(req,res)=>{
-    try {
-        const users = await User.find({});
-        res.send(users)
+app.get("/feed", async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.send(users);
+  } catch (err) {
+    res.status(500).send("Something Went wrong");
+  }
+});
 
-    } catch (err) {
-        res.status(500).send("Something Went wrong");
-      }
-})
+//update user by id
+
+app.patch("/update", async (req, res) => {
+  const userId = req.body.userId;
+  const data = req.body;
+  try {
+    const Allowed_UPDATES = [
+      "userId",
+      "photoUrl",
+      "about",
+      "gender",
+      "age",
+      "skills",
+    ];
+
+    const isUpdateAllowed = Object.keys(data).every((k) => Allowed_UPDATES.includes(k));
+    if (!isUpdateAllowed) {
+      throw new Error("Update Not Allowed");
+    }
+
+    const user = await User.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "after",
+      runValidators: true,
+    });
+    console.log(user);
+    res.send("User Updated Sucessfully");
+  } catch (err) {
+    res.status(500).send("UPDATE FAILED: " + err.message);
+  }
+});
 
 //delete user by id
-app.delete("/user", async(req,res)=>{
-    const userId = req.body.userId;
-    try {
-        const user = await User.findByIdAndDelete({_id:userId});
-        res.send("User Deleted Sucessfully")
-    } catch (err) {
-        res.status(500).send("Something Went wrong");
-
-    }
-})
+app.delete("/user", async (req, res) => {
+  const userId = req.body.userId;
+  try {
+    const user = await User.findByIdAndDelete({ _id: userId });
+    res.send("User Deleted Sucessfully");
+  } catch (err) {
+    res.status(500).send("Something Went wrong");
+  }
+});
 
 connectDB()
   .then(() => {
