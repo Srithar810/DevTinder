@@ -4,8 +4,13 @@ const app = express();
 const User = require("./models/user");
 const { validateSignUpData } = require("./utils/validation");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const user = require("./models/user");
+const { userAuth } = require("./middlewars/auth");
 
 app.use(express.json());
+app.use(cookieParser());
 
 //create user postmethod
 app.post("/signup", async (req, res) => {
@@ -40,10 +45,14 @@ app.get("/login", async (req, res) => {
     if (!user) {
       throw new Error("invalid Crendential....!");
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (isPasswordValid) {
+    const isPasswordValid = await user.validatePassword(password)
 
-    res.cookie("token","gdsjfdskjkjakfbvkabvkjss")
+    if (isPasswordValid) {
+      const token = await user.getJWT();
+
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+      });
       res.send("Login Sucessfully...!!");
     } else {
       throw new Error("invalid Crendential....!");
@@ -53,13 +62,15 @@ app.get("/login", async (req, res) => {
   }
 });
 
-
 //profile
-app.get("/profile", async (req,res)=>{
-    const cookies =req.cookies;
-    console.log(cookies);
-    res.send("Reading Cookies.....!!")
-})
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
+});
 
 //Get user by emailId
 app.get("/user", async (req, res) => {
