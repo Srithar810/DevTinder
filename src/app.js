@@ -2,20 +2,64 @@ const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user");
+const { validateSignUpData } = require("./utils/validation");
+const bcrypt = require("bcrypt");
+
 app.use(express.json());
 
 //create user postmethod
 app.post("/signup", async (req, res) => {
-  //creating a new instance of user model
-  const user = new User(req.body);
-
   try {
+    //validate of data
+    validateSignUpData(req);
+    const { firstName, lastName, emailId, password } = req.body;
+
+    //Encrypt the password
+    const passwordhash = await bcrypt.hash(password, 10);
+    console.log(passwordhash);
+
+    //creating a new instance of the user model
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordhash,
+    });
     await user.save();
     res.send("User Added Sucessfully....!");
   } catch (err) {
     res.status(400).send("Error saving the user: " + err.message);
   }
 });
+
+//login
+app.get("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("invalid Crendential....!");
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (isPasswordValid) {
+
+    res.cookie("token","gdsjfdskjkjakfbvkabvkjss")
+      res.send("Login Sucessfully...!!");
+    } else {
+      throw new Error("invalid Crendential....!");
+    }
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
+});
+
+
+//profile
+app.get("/profile", async (req,res)=>{
+    const cookies =req.cookies;
+    console.log(cookies);
+    res.send("Reading Cookies.....!!")
+})
 
 //Get user by emailId
 app.get("/user", async (req, res) => {
@@ -45,8 +89,8 @@ app.get("/feed", async (req, res) => {
 
 //update user by id
 
-app.patch("/update", async (req, res) => {
-  const userId = req.body.userId;
+app.patch("/update/:userId", async (req, res) => {
+  const userId = req.params?.userId;
   const data = req.body;
   try {
     const Allowed_UPDATES = [
@@ -58,9 +102,14 @@ app.patch("/update", async (req, res) => {
       "skills",
     ];
 
-    const isUpdateAllowed = Object.keys(data).every((k) => Allowed_UPDATES.includes(k));
+    const isUpdateAllowed = Object.keys(data).every((k) =>
+      Allowed_UPDATES.includes(k)
+    );
     if (!isUpdateAllowed) {
       throw new Error("Update Not Allowed");
+    }
+    if (data?.skills.length > 10) {
+      throw new Error("Skills Cannot be more than 10");
     }
 
     const user = await User.findByIdAndUpdate({ _id: userId }, data, {
